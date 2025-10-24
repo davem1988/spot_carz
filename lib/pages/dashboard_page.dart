@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../services/database_service.dart';
+import '../services/auth_service.dart';
+import 'login_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,7 +17,43 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
   final ImagePicker _picker = ImagePicker();
   final List<CarSpot> _carSpots = [];
-  final List<String> _brands = ['Ferrari', 'Lamborghini', 'Porsche', 'McLaren', 'Bugatti', 'Aston Martin'];
+  final List<String> _brands = [];
+  final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final carSpots = await _databaseService.getCarSpots();
+      final brands = await _databaseService.getBrands();
+      
+      setState(() {
+        _carSpots.clear();
+        _carSpots.addAll(carSpots);
+        _brands.clear();
+        _brands.addAll(brands);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +109,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHomeTab() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -158,6 +203,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildCollectionTab() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -374,8 +425,26 @@ class _DashboardPageState extends State<DashboardPage> {
                 _buildProfileOption(Icons.notifications, 'Notifications', () {}),
                 _buildProfileOption(Icons.help, 'Help & Support', () {}),
                 _buildProfileOption(Icons.info, 'About', () {}),
-                _buildProfileOption(Icons.logout, 'Logout', () {
-                  Navigator.pop(context);
+                _buildProfileOption(Icons.logout, 'Logout', () async {
+                  try {
+                    await _authService.signOut();
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                        (route) => false,
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Logout failed: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 }),
               ],
             ),
@@ -469,10 +538,10 @@ class _DashboardPageState extends State<DashboardPage> {
               color: Colors.grey[800],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: spot.image != null
+            child: spot.imageUrl != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(spot.image!, fit: BoxFit.cover),
+                    child: Image.network(spot.imageUrl!, fit: BoxFit.cover),
                   )
                 : Icon(Icons.directions_car, color: Colors.grey[400]),
           ),
@@ -653,18 +722,43 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Text('Cancel', style: GoogleFonts.roboto(color: Colors.grey[400])),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (brandController.text.isNotEmpty && modelController.text.isNotEmpty) {
-                setState(() {
-                  _carSpots.add(CarSpot(
+                try {
+                  final newCarSpot = await _databaseService.createCarSpot(
                     brand: brandController.text,
                     model: modelController.text,
                     year: yearController.text,
-                    image: image,
-                    date: DateTime.now().toString().split(' ')[0],
-                  ));
-                });
-                Navigator.pop(context);
+                    imageFile: image,
+                  );
+                  
+                  setState(() {
+                    _carSpots.insert(0, newCarSpot);
+                    if (!_brands.contains(brandController.text)) {
+                      _brands.add(brandController.text);
+                    }
+                  });
+                  
+                  Navigator.pop(context);
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Car spot added successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to add car spot: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
@@ -676,18 +770,4 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class CarSpot {
-  final String brand;
-  final String model;
-  final String year;
-  final File? image;
-  final String date;
-
-  CarSpot({
-    required this.brand,
-    required this.model,
-    required this.year,
-    this.image,
-    required this.date,
-  });
-}
+// CarSpot class is now defined in database_service.dart

@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import 'dashboard_page.dart';
-import 'register_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _fullNameController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
 
   final AuthService _authService = AuthService();
@@ -24,22 +26,33 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _fullNameController.dispose();
     super.dispose();
   }
 
-  void _login() async {
+  void _register() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
       try {
-        await _authService.signIn(
+        await _authService.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          fullName: _fullNameController.text.trim(),
         );
 
         if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful! Please check your email to verify your account.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Navigate to dashboard
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const DashboardPage()),
@@ -117,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Welcome Back',
+                        'Create Account',
                         style: GoogleFonts.orbitron(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -127,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to continue spotting cars',
+                        'Join the car spotting community',
                         style: GoogleFonts.roboto(
                           fontSize: 16,
                           color: Colors.grey[300],
@@ -139,11 +152,39 @@ class _LoginPageState extends State<LoginPage> {
                 
                 const SizedBox(height: 60),
                 
-                // Login Form
+                // Registration Form
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
+                      // Full Name Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: TextFormField(
+                          controller: _fullNameController,
+                          style: GoogleFonts.roboto(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Full Name',
+                            labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your full name';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
                       // Email Field
                       Container(
                         decoration: BoxDecoration(
@@ -217,31 +258,57 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       
-                      // Forgot Password
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => _showForgotPasswordDialog(),
-                          child: Text(
-                            'Forgot Password?',
-                            style: GoogleFonts.roboto(
-                              color: Colors.red[400],
-                              fontSize: 14,
+                      // Confirm Password Field
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: !_isConfirmPasswordVisible,
+                          style: GoogleFonts.roboto(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                });
+                              },
                             ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
                           ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please confirm your password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
                         ),
                       ),
                       
                       const SizedBox(height: 40),
                       
-                      // Login Button
+                      // Register Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
+                          onPressed: _isLoading ? null : _register,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red[600],
                             foregroundColor: Colors.white,
@@ -260,7 +327,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 )
                               : Text(
-                                  'SIGN IN',
+                                  'CREATE ACCOUNT',
                                   style: GoogleFonts.roboto(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -272,194 +339,37 @@ class _LoginPageState extends State<LoginPage> {
                       
                       const SizedBox(height: 30),
                       
-                      // Divider
+                      // Sign In Link
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: Colors.grey[600],
+                          Text(
+                            "Already have an account? ",
+                            style: GoogleFonts.roboto(
+                              color: Colors.grey[400],
+                              fontSize: 16,
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
                             child: Text(
-                              'OR',
+                              'Sign In',
                               style: GoogleFonts.roboto(
-                                color: Colors.grey[400],
-                                fontSize: 14,
+                                color: Colors.red[400],
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: Colors.grey[600],
-                            ),
-                          ),
                         ],
                       ),
                       
-                      const SizedBox(height: 30),
-                      
-                      // Social Login Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialButton(
-                              icon: Icons.g_mobiledata,
-                              label: 'Google',
-                              onPressed: () {},
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildSocialButton(
-                              icon: Icons.facebook,
-                              label: 'Facebook',
-                              onPressed: () {},
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                const SizedBox(height: 30),
-                
-                // Sign Up Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: GoogleFonts.roboto(
-                        color: Colors.grey[400],
-                        fontSize: 16,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const RegisterPage()),
-                        );
-                      },
-                      child: Text(
-                        'Sign Up',
-                        style: GoogleFonts.roboto(
-                          color: Colors.red[400],
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 40), // Add extra bottom padding
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showForgotPasswordDialog() {
-    final emailController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          'Reset Password',
-          style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Enter your email address and we\'ll send you a password reset link.',
-              style: GoogleFonts.roboto(color: Colors.grey[300]),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              style: GoogleFonts.roboto(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Email',
-                labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.roboto(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (emailController.text.isNotEmpty) {
-                try {
-                  await _authService.resetPassword(emailController.text.trim());
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password reset email sent!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(e.toString().replaceFirst('Exception: ', '')),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
-            child: Text('Send', style: GoogleFonts.roboto(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: TextButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white, size: 20),
-        label: Text(
-          label,
-          style: GoogleFonts.roboto(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
           ),
         ),
       ),
