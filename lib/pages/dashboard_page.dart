@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../services/database_service.dart';
+import '../services/auth_service.dart';
+import '../data/car_brands.dart';
+import 'login_page.dart';
+import 'brand_detail_page.dart';
+import 'car_detail_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,7 +20,51 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
   final ImagePicker _picker = ImagePicker();
   final List<CarSpot> _carSpots = [];
-  final List<String> _brands = ['Ferrari', 'Lamborghini', 'Porsche', 'McLaren', 'Bugatti', 'Aston Martin'];
+  final List<String> _brands = [];
+  final DatabaseService _databaseService = DatabaseService();
+  final AuthService _authService = AuthService();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      debugPrint('Dashboard: Loading car spots and brands...');
+      
+      // Create default data for new users
+      await _databaseService.createDefaultData();
+      
+      final carSpots = await _databaseService.getCarSpots();
+      final brands = await _databaseService.getBrands();
+      
+      debugPrint('Dashboard: Loaded ${carSpots.length} car spots and ${brands.length} brands');
+      
+      setState(() {
+        _carSpots.clear();
+        _carSpots.addAll(carSpots);
+        _brands.clear();
+        _brands.addAll(brands);
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Dashboard: Error loading data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +120,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHomeTab() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -158,6 +214,12 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildCollectionTab() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -318,70 +380,126 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildProfileTab() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          
-          // Profile Header
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.red[400],
-                  child: Icon(
-                    Icons.person,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _databaseService.getUserProfile(),
+      builder: (context, snapshot) {
+        final userProfile = snapshot.data;
+        final authUser = _authService.currentUser;
+        
+        final userEmail = userProfile?['email'] ?? authUser?.email ?? 'No email';
+        final userName = userProfile?['full_name'] ?? authUser?.userMetadata?['full_name'] ?? 'Car Spotter';
+        final initials = userName.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+        
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              
+              // Profile Header
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Car Spotter',
-                  style: GoogleFonts.roboto(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.red[400],
+                      child: Text(
+                        initials.isNotEmpty ? initials : 'CS',
+                        style: GoogleFonts.roboto(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      userName,
+                      style: GoogleFonts.roboto(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      userEmail,
+                      style: GoogleFonts.roboto(
+                        fontSize: 14,
+                        color: Colors.grey[300],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Member since ${authUser?.createdAt != null ? DateTime.parse(authUser!.createdAt).year : DateTime.now().year}',
+                      style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'car.spotter@example.com',
-                  style: GoogleFonts.roboto(
-                    fontSize: 14,
-                    color: Colors.grey[300],
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // User Statistics
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard('Total Spots', _carSpots.length.toString(), Icons.camera_alt, Colors.blue),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildStatCard('Brands', _brands.length.toString(), Icons.category, Colors.green),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // Profile Options
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildProfileOption(Icons.settings, 'Settings', () {}),
+                    _buildProfileOption(Icons.notifications, 'Notifications', () {}),
+                    _buildProfileOption(Icons.help, 'Help & Support', () {}),
+                    _buildProfileOption(Icons.info, 'About', () {}),
+                    _buildProfileOption(Icons.logout, 'Logout', () async {
+                      try {
+                        await _authService.signOut();
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Logout failed: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    }),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          
-          const SizedBox(height: 32),
-          
-          // Profile Options
-          Expanded(
-            child: ListView(
-              children: [
-                _buildProfileOption(Icons.settings, 'Settings', () {}),
-                _buildProfileOption(Icons.notifications, 'Notifications', () {}),
-                _buildProfileOption(Icons.help, 'Help & Support', () {}),
-                _buildProfileOption(Icons.info, 'About', () {}),
-                _buildProfileOption(Icons.logout, 'Logout', () {
-                  Navigator.pop(context);
-                }),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -452,102 +570,135 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildCarSpotCard(CarSpot spot) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: spot.image != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(spot.image!, fit: BoxFit.cover),
-                  )
-                : Icon(Icons.directions_car, color: Colors.grey[400]),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CarDetailPage(carSpot: spot),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  spot.brand,
-                  style: GoogleFonts.roboto(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  spot.model,
-                  style: GoogleFonts.roboto(
-                    fontSize: 14,
-                    color: Colors.grey[300],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  spot.date,
-                  style: GoogleFonts.roboto(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: spot.imageUrls.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(spot.imageUrls.first, fit: BoxFit.cover),
+                    )
+                  : Icon(Icons.directions_car, color: Colors.grey[400]),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    spot.brand.replaceAll('_', ' '),
+                    style: GoogleFonts.roboto(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    spot.model,
+                    style: GoogleFonts.roboto(
+                      fontSize: 14,
+                      color: Colors.grey[300],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    spot.spottedAt.toString().split(' ')[0],
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey[400],
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBrandCard(String brand) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.directions_car,
-            size: 40,
-            color: Colors.red[400],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BrandDetailPage(brand: brand),
           ),
-          const SizedBox(height: 12),
-          Text(
-            brand,
-            style: GoogleFonts.roboto(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.directions_car,
+              size: 40,
+              color: Colors.red[400],
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '0 cars',
-            style: GoogleFonts.roboto(
-              fontSize: 12,
-              color: Colors.grey[400],
+            const SizedBox(height: 12),
+            Text(
+              brand.replaceAll('_', ' '),
+              style: GoogleFonts.roboto(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            FutureBuilder<int>(
+              future: _getBrandCarCount(brand),
+              builder: (context, snapshot) {
+                final count = snapshot.data ?? 0;
+                return Text(
+                  '$count cars',
+                  style: GoogleFonts.roboto(
+                    fontSize: 12,
+                    color: Colors.grey[400],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -580,91 +731,169 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<int> _getBrandCarCount(String brand) async {
+    try {
+      final carSpots = await _databaseService.getCarSpots();
+      return carSpots.where((spot) => spot.brand == brand).length;
+    } catch (e) {
+      debugPrint('Dashboard: Error getting brand car count: $e');
+      return 0;
+    }
+  }
+
   void _showAddCarDialog({File? image}) {
-    final brandController = TextEditingController();
-    final modelController = TextEditingController();
+    String? selectedBrand;
+    String? selectedModel;
     final yearController = TextEditingController();
+    List<String> availableModels = [];
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(
-          'Add Car Spot',
-          style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (image != null)
-              Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[800],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: Text(
+            'Add Car Spot',
+            style: GoogleFonts.roboto(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (image != null)
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.grey[800],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(image, fit: BoxFit.cover),
+                  ),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(image, fit: BoxFit.cover),
+              const SizedBox(height: 16),
+              
+              // Brand Dropdown
+              DropdownButtonFormField<String>(
+                value: selectedBrand,
+                decoration: InputDecoration(
+                  labelText: 'Brand',
+                  labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                dropdownColor: Colors.grey[800],
+                style: GoogleFonts.roboto(color: Colors.white),
+                items: CarBrandsData.getAllBrandNames().map((String brand) {
+                  return DropdownMenuItem<String>(
+                    value: brand,
+                    child: Text(brand.replaceAll('_', ' ')),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedBrand = newValue;
+                    selectedModel = null;
+                    availableModels = CarBrandsData.getModelsForBrand(newValue ?? '');
+                  });
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Model Dropdown
+              DropdownButtonFormField<String>(
+                value: selectedModel,
+                decoration: InputDecoration(
+                  labelText: 'Model',
+                  labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                dropdownColor: Colors.grey[800],
+                style: GoogleFonts.roboto(color: Colors.white),
+                items: availableModels.map((String model) {
+                  return DropdownMenuItem<String>(
+                    value: model,
+                    child: Text(model),
+                  );
+                }).toList(),
+                onChanged: selectedBrand != null ? (String? newValue) {
+                  setState(() {
+                    selectedModel = newValue;
+                  });
+                } : null,
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Year TextField
+              TextField(
+                controller: yearController,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.roboto(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Year',
+                  labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: brandController,
-              style: GoogleFonts.roboto(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Brand',
-                labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: modelController,
-              style: GoogleFonts.roboto(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Model',
-                labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: yearController,
-              style: GoogleFonts.roboto(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Year',
-                labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel', style: GoogleFonts.roboto(color: Colors.grey[400])),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (brandController.text.isNotEmpty && modelController.text.isNotEmpty) {
-                setState(() {
-                  _carSpots.add(CarSpot(
-                    brand: brandController.text,
-                    model: modelController.text,
+            onPressed: () async {
+              if (selectedBrand != null && selectedModel != null && yearController.text.isNotEmpty) {
+                try {
+                  final newCarSpot = await _databaseService.createCarSpot(
+                    brand: selectedBrand!,
+                    model: selectedModel!,
                     year: yearController.text,
-                    image: image,
-                    date: DateTime.now().toString().split(' ')[0],
-                  ));
-                });
-                Navigator.pop(context);
+                    imageFile: image,
+                  );
+                  
+                  if (mounted) {
+                    setState(() {
+                      _carSpots.insert(0, newCarSpot);
+                      if (!_brands.contains(selectedBrand)) {
+                        _brands.add(selectedBrand!);
+                      }
+                    });
+                    
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Car spot added successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to add car spot: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please select brand, model, and enter year'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
@@ -672,22 +901,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-class CarSpot {
-  final String brand;
-  final String model;
-  final String year;
-  final File? image;
-  final String date;
-
-  CarSpot({
-    required this.brand,
-    required this.model,
-    required this.year,
-    this.image,
-    required this.date,
-  });
-}
+// CarSpot class is now defined in database_service.dart
