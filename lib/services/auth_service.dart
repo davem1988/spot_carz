@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
 
@@ -14,13 +15,16 @@ class AuthService {
     String? fullName,
   }) async {
     try {
+      debugPrint('AuthService: Attempting sign up for $email');
       final response = await _supabase.client.auth.signUp(
         email: email,
         password: password,
         data: fullName != null ? {'full_name': fullName} : null,
       );
+      debugPrint('AuthService: Sign up response - User: ${response.user?.email}, Session: ${response.session != null}');
       return response;
     } catch (e) {
+      debugPrint('AuthService: Sign up error: $e');
       throw Exception('Sign up failed: ${e.toString()}');
     }
   }
@@ -30,12 +34,15 @@ class AuthService {
     required String password,
   }) async {
     try {
+      debugPrint('AuthService: Attempting sign in for $email');
       final response = await _supabase.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      debugPrint('AuthService: Sign in response - User: ${response.user?.email}, Session: ${response.session != null}');
       return response;
     } catch (e) {
+      debugPrint('AuthService: Sign in error: $e');
       throw Exception('Sign in failed: ${e.toString()}');
     }
   }

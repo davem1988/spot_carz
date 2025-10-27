@@ -10,8 +10,8 @@ void main() async {
   
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'YOUR_SUPABASE_URL', // Replace with your Supabase URL
-    anonKey: 'YOUR_SUPABASE_ANON_KEY', // Replace with your Supabase anon key
+    url: 'https://xjnrmekknmrqfwewcmwt.supabase.co', // Your Supabase API URL
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbnJtZWtrbm1ycWZ3ZXdjbXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwMjkwNTEsImV4cCI6MjA3NjYwNTA1MX0.YLABvrQ5uMGY3cVaPFVG9ojMjq_o0q3ibPMryU3UzPw', // Your Supabase anon key
   );
   
   runApp(const SpotCarzApp());

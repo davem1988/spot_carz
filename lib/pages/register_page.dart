@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 import 'dashboard_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -21,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
 
   final AuthService _authService = AuthService();
+  final DatabaseService _databaseService = DatabaseService();
 
   @override
   void dispose() {
@@ -38,27 +40,54 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       try {
-        await _authService.signUp(
+        debugPrint('Attempting sign up with email: ${_emailController.text.trim()}');
+        final response = await _authService.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           fullName: _fullNameController.text.trim(),
         );
+        debugPrint('Sign up response: ${response.user?.email}');
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! Please check your email to verify your account.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          
-          // Navigate to dashboard
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const DashboardPage()),
-          );
+          if (response.session != null) {
+            // User is immediately signed in (email confirmation disabled)
+            // Create user profile in database
+            try {
+              await _databaseService.createUserProfile(
+                email: _emailController.text.trim(),
+                fullName: _fullNameController.text.trim(),
+              );
+            } catch (e) {
+              debugPrint('Error creating user profile: $e');
+              // Continue anyway - profile creation is not critical
+            }
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const DashboardPage()),
+            );
+          } else {
+            // User needs to confirm email
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Registration successful! Please check your email to verify your account.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            
+            // Go back to login page
+            Navigator.pop(context);
+          }
         }
       } catch (e) {
+        debugPrint('Sign up error: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
