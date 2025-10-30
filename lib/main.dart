@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'pages/home_page.dart';
 import 'pages/dashboard_page.dart';
 import 'services/auth_service.dart';
+import 'widgets/background_container.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,25 +66,28 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
     
-    return StreamBuilder<AuthState>(
-      stream: authService.authStateChanges,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(color: Colors.red),
-            ),
-          );
-        }
-        
-        final session = snapshot.hasData ? snapshot.data!.session : null;
-        
-        if (session != null) {
-          return const DashboardPage();
-        } else {
-          return const HomePage();
-        }
-      },
+    return BackgroundContainer(
+      child: StreamBuilder<AuthState>(
+        stream: authService.authStateChanges,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Center(
+                child: CircularProgressIndicator(color: Colors.red),
+              ),
+            );
+          }
+          
+          final session = snapshot.hasData ? snapshot.data!.session : null;
+          
+          if (session != null) {
+            return const DashboardPage();
+          } else {
+            return const HomePage();
+          }
+        },
+      ),
     );
   }
 }
