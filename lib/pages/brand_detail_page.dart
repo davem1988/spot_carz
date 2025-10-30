@@ -44,55 +44,54 @@ class _BrandDetailPageState extends State<BrandDetailPage> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.brand.replaceAll('_', ' '),
-                            style: GoogleFonts.roboto(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.brand.replaceAll('_', ' '),
+                          style: GoogleFonts.roboto(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          Text(
-                            '${_carSpots.length} cars spotted',
-                            style: GoogleFonts.roboto(
-                              fontSize: 16,
-                              color: Colors.grey[300],
-                            ),
+                        ),
+                        Text(
+                          '${_carSpots.length} cars spotted',
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            color: Colors.grey[300],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              
-              // Content
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.red),
-                      )
-                    : _carSpots.isEmpty
-                        ? _buildEmptyState()
-                        : _buildCarsList(),
-              ),
-            ],
-          ),
+            ),
+            
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.red),
+                    )
+                  : _carSpots.isEmpty
+                      ? _buildEmptyState()
+                      : _buildCarsList(),
+            ),
+          ],
         ),
       ),
     );

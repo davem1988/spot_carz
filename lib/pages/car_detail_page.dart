@@ -49,7 +49,6 @@ class CarDetailPage extends StatelessWidget {
               ),
             ],
           ),
-        ),
       ),
     );
   }
