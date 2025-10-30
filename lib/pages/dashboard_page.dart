@@ -69,28 +69,16 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1a1a1a),
-              Color(0xFF2d2d2d),
-              Color(0xFF1a1a1a),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: IndexedStack(
-            index: _selectedIndex,
-            children: [
-              _buildHomeTab(),
-              _buildCollectionTab(),
-              _buildSpotTab(),
-              _buildProfileTab(),
-            ],
-          ),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildHomeTab(),
+            _buildCollectionTab(),
+            _buildSpotTab(),
+            _buildProfileTab(),
+          ],
         ),
       ),
       bottomNavigationBar: Container(

@@ -10,20 +10,9 @@ class CarDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1a1a1a),
-              Color(0xFF2d2d2d),
-              Color(0xFF1a1a1a),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Column(
             children: [
               // Header
               Padding(

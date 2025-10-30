@@ -8,18 +8,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1a1a1a),
-              Color(0xFF2d2d2d),
-              Color(0xFF1a1a1a),
-            ],
-          ),
-        ),
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
         child: SafeArea(
