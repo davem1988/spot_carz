@@ -225,7 +225,7 @@ class DatabaseService {
         }
         
         // If all alternatives failed, throw the original error
-        throw e;
+        rethrow;
       }
     } catch (e) {
       throw Exception('Failed to create car spot: ${e.toString()}');
@@ -628,6 +628,92 @@ class DatabaseService {
     } catch (e) {
       debugPrint('DatabaseService: Error creating default data: $e');
       // Don't throw the error, just log it so the app doesn't crash
+    }
+  }
+
+  Future<void> deleteCurrentUserData() async {
+    try {
+      final String userId = _supabase.currentUser!.id;
+
+      // Delete user achievements
+      try {
+        await _supabase.client
+            .from('user_achievements')
+            .delete()
+            .eq('user_id', userId);
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting user_achievements: $e');
+      }
+
+      // Get user collection ids
+      List<dynamic> collections = [];
+      try {
+        collections = await _supabase.client
+            .from('user_collections')
+            .select('id')
+            .eq('user_id', userId);
+      } catch (e) {
+        debugPrint('DatabaseService: Error fetching user_collections: $e');
+      }
+
+      // Delete collection_spots for those collections
+      try {
+        final List<String> collectionIds = collections
+            .map((c) => c['id'] as String)
+            .toList();
+        for (final cid in collectionIds) {
+          await _supabase.client
+              .from('collection_spots')
+              .delete()
+              .eq('collection_id', cid);
+        }
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting collection_spots: $e');
+      }
+
+      // Delete user collections
+      try {
+        await _supabase.client
+            .from('user_collections')
+            .delete()
+            .eq('user_id', userId);
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting user_collections: $e');
+      }
+
+      // Delete car spots
+      try {
+        await _supabase.client
+            .from('car_spots')
+            .delete()
+            .eq('spotter_id', userId);
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting car_spots: $e');
+      }
+
+      // Delete user profile
+      try {
+        await _supabase.client
+            .from('user_profiles')
+            .delete()
+            .eq('id', userId);
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting user_profiles: $e');
+      }
+
+      // Delete storage objects under car-images bucket at path {userId}
+      try {
+        final storage = _supabase.client.storage.from('car-images');
+        final listResult = await storage.list(path: userId);
+        if (listResult.isNotEmpty) {
+          final paths = listResult.map((f) => '$userId/${f.name}').toList();
+          await storage.remove(paths);
+        }
+      } catch (e) {
+        debugPrint('DatabaseService: Error deleting storage files: $e');
+      }
+    } catch (e) {
+      throw Exception('Failed to delete user data: ${e.toString()}');
     }
   }
 }

@@ -8,6 +8,7 @@ import '../data/car_brands.dart';
 import 'login_page.dart';
 import 'brand_detail_page.dart';
 import 'car_detail_page.dart';
+import 'settings_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -456,7 +457,12 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: ListView(
                   children: [
-                    _buildProfileOption(Icons.settings, 'Settings', () {}),
+                    _buildProfileOption(Icons.settings, 'Settings', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsPage()),
+                      );
+                    }),
                     _buildProfileOption(Icons.notifications, 'Notifications', () {}),
                     _buildProfileOption(Icons.help, 'Help & Support', () {}),
                     _buildProfileOption(Icons.info, 'About', () {}),
@@ -764,7 +770,7 @@ class _DashboardPageState extends State<DashboardPage> {
               
               // Brand Dropdown
               DropdownButtonFormField<String>(
-                value: selectedBrand,
+                initialValue: selectedBrand,
                 decoration: InputDecoration(
                   labelText: 'Brand',
                   labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
@@ -793,7 +799,7 @@ class _DashboardPageState extends State<DashboardPage> {
               
               // Model Dropdown
               DropdownButtonFormField<String>(
-                value: selectedModel,
+                initialValue: selectedModel,
                 decoration: InputDecoration(
                   labelText: 'Model',
                   labelStyle: GoogleFonts.roboto(color: Colors.grey[400]),
