@@ -5,6 +5,9 @@ import 'supabase_service.dart';
 class AuthService {
   final SupabaseService _supabase = SupabaseService.instance;
   
+  // Expose supabase client for session checking
+  SupabaseClient get client => _supabase.client;
+  
   User? get currentUser => _supabase.currentUser;
   bool get isLoggedIn => _supabase.isLoggedIn;
   Stream<AuthState> get authStateChanges => _supabase.authStateChanges;
@@ -77,6 +80,25 @@ class AuthService {
       );
     } catch (e) {
       throw Exception('Profile update failed: ${e.toString()}');
+    }
+  }
+
+  Future<bool> signInWithGoogle() async {
+    try {
+      debugPrint('AuthService: Attempting Google sign in');
+      await _supabase.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'spotcarz://login-callback',
+        authScreenLaunchMode: LaunchMode.platformDefault,
+      );
+      debugPrint('AuthService: Google sign in initiated - redirectTo: spotcarz://login-callback');
+      
+      // Supabase will process OAuth callback and redirect to our deep link with tokens
+      // The app will receive the deep link and Supabase SDK should process it automatically
+      return true;
+    } catch (e) {
+      debugPrint('AuthService: Google sign in error: $e');
+      throw Exception('Google sign in failed: ${e.toString()}');
     }
   }
 }

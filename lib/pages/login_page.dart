@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import 'dashboard_page.dart';
 import 'register_page.dart';
@@ -19,9 +21,84 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   final AuthService _authService = AuthService();
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // Poll for session changes (for OAuth callback detection)
+    _pollForSession();
+    
+    // Listen for auth state changes to handle OAuth callback
+    _authStateSubscription = _authService.authStateChanges.listen((authState) {
+      debugPrint('LoginPage: Auth state changed, session: ${authState.session != null}');
+      if (mounted && authState.session != null && !_isNavigating) {
+        debugPrint('LoginPage: Session detected in stream, navigating...');
+        _navigateToDashboard();
+      }
+    });
+  }
+  
+  void _pollForSession() {
+    // Check for session periodically, especially after OAuth
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      _checkSessionAndNavigate();
+    });
+    
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (!mounted) return;
+      _checkSessionAndNavigate();
+    });
+    
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (!mounted) return;
+      _checkSessionAndNavigate();
+    });
+  }
+  
+  void _checkSessionAndNavigate() {
+    if (!mounted) return;
+    
+    // Check session directly from Supabase
+    final session = _authService.client.auth.currentSession;
+    
+    if (session != null) {
+      debugPrint('LoginPage: Session found in poll, navigating...');
+      _navigateToDashboard();
+    }
+  }
+  
+  void _navigateToDashboard() {
+    if (!mounted) return;
+    
+    // Prevent multiple navigations
+    if (_isNavigating) return;
+    _isNavigating = true;
+    
+    setState(() {
+      _isLoading = false;
+    });
+    
+    // Small delay to ensure state is updated
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      
+      // Navigate to dashboard, replacing the entire navigation stack
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardPage()),
+        (route) => false,
+      );
+    });
+  }
+  
+  bool _isNavigating = false;
+  StreamSubscription<AuthState>? _authStateSubscription;
 
   @override
   void dispose() {
+    _authStateSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -60,6 +137,40 @@ class _LoginPageState extends State<LoginPage> {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  void _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _authService.signInWithGoogle();
+      // Note: OAuth flow will handle navigation automatically via deep link
+      // The auth state listener in main.dart will detect the session
+      // Also listening in initState to reset loading when session is created
+      
+      // Set a timeout to reset loading if OAuth doesn't complete
+      Future.delayed(const Duration(seconds: 30), () {
+        if (mounted && _isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -298,7 +409,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: _buildSocialButton(
                               icon: Icons.g_mobiledata,
                               label: 'Google',
-                              onPressed: () {},
+                              onPressed: _isLoading ? null : _signInWithGoogle,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -426,7 +537,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildSocialButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    VoidCallback? onPressed,
   }) {
     return Container(
       height: 50,
