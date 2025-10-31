@@ -11,51 +11,24 @@ class HomePage extends StatelessWidget {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Logo SpotCarz en fond avec opacité
-          Positioned(
-            top: 100,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Opacity(
-                opacity: 0.1,
-                child: Image.asset(
-                  'assets/images/logos/spotcarz_logo.png',
-                  width: MediaQuery.of(context).size.width * 0.8,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-          
-          // Contenu principal
+          // Contenu principal (pas de watermark logo - on utilise le fond BackgroundContainer)
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
               child: Column(
                 children: [
-                  // Logo SpotCarz en haut
+                  // Logo SpotCarz en haut (plus grand, sans fond noir)
                   Image.asset(
                     'assets/images/logos/spotcarz_logo.png',
-                    height: 60,
+                    height: 80,
                     fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
                   ),
                   
-                  const SizedBox(height: 8),
-                  
-                  // Subtitle
-                  Text(
-                    'track your dreams cars',
-                    style: GoogleFonts.roboto(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.8),
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  
+                  // Pas de subtitle car déjà dans le logo
                   const SizedBox(height: 60),
                   
-                  // Card 1: Spot Cars
+                  // Card 1: Spot Cars (hauteur réduite)
                   _buildFeatureCard(
                     context,
                     backgroundImage: 'assets/images/cards/card_bg_1.jpg',
@@ -173,7 +146,7 @@ class HomePage extends StatelessWidget {
     required String description,
   }) {
     return Container(
-      height: 120,
+      height: 100, // Réduit de 120 à 100
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
@@ -218,16 +191,16 @@ class HomePage extends StatelessWidget {
             
             // Contenu
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
                   // Icon
                   Container(
-                    width: 50,
-                    height: 50,
-                    padding: const EdgeInsets.all(10),
+                    width: 45,
+                    height: 45,
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.white.withOpacity(0.3),
@@ -236,14 +209,14 @@ class HomePage extends StatelessWidget {
                     ),
                     child: Image.asset(
                       icon,
-                      color: Colors.white,
                       fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                   
                   const SizedBox(width: 16),
                   
-                  // Texte
+                  // Texte (tout en Roboto)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,16 +225,17 @@ class HomePage extends StatelessWidget {
                         Text(
                           title,
                           style: GoogleFonts.roboto(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           description,
                           style: GoogleFonts.roboto(
-                            fontSize: 13,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
                             color: Colors.white.withOpacity(0.9),
                             height: 1.3,
                           ),
