@@ -44,19 +44,21 @@ class _DashboardPageState extends State<DashboardPage> {
       
       debugPrint('Dashboard: Loaded ${carSpots.length} car spots and ${brands.length} brands');
       
-      setState(() {
-        _carSpots.clear();
-        _carSpots.addAll(carSpots);
-        _brands.clear();
-        _brands.addAll(brands);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _carSpots.clear();
+          _carSpots.addAll(carSpots);
+          _brands.clear();
+          _brands.addAll(brands);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Dashboard: Error loading data: $e');
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load data: ${e.toString()}'),
